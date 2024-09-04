@@ -1,0 +1,8 @@
+// view all articles that are older than 3 months and have 0 views
+SELECT ArticleID, Title, PublishDate, NumberOfViews
+FROM EasyDNNNews
+WHERE NumberOfViews = 0 AND PublishDate < DATEADD(month, -3, GETDATE())
+
+// Delete all articles that are older than 3 months and have 0 views
+DELETE FROM EasyDNNNews
+WHERE NumberOfViews = 0 AND PublishDate < DATEADD(month, -3, GETDATE())
