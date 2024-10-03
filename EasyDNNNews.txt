@@ -6,3 +6,52 @@ WHERE NumberOfViews = 0 AND PublishDate < DATEADD(month, -3, GETDATE())
 // Delete all articles that are older than 3 months and have 0 views
 DELETE FROM EasyDNNNews
 WHERE NumberOfViews = 0 AND PublishDate < DATEADD(month, -3, GETDATE())
+
+// Prevent Duplicate Tags from being imported from RSS import on Easy DNN News
+#How It Works:
+
+The trigger is set to fire before every insertion into the EasyDNNNewsTagsItems table.
+It will check if the ArticleID and TagID combination already exists in the table.
+If the combination is found, it prevents the insertion, thus avoiding the primary key violation error.
+
+#Steps to Implement:
+Run the SQL Trigger Query:
+
+Open your SQL management tool (like SQL Server Management Studio).
+Paste and execute the following query:
+// Start SQL 
+CREATE TRIGGER trg_PreventDuplicateTags
+ON dbo.EasyDNNNewsTagsItems
+INSTEAD OF INSERT
+AS
+BEGIN
+    INSERT INTO dbo.EasyDNNNewsTagsItems (ArticleID, TagID, DateAdded)
+    SELECT i.ArticleID, i.TagID, i.DateAdded
+    FROM inserted i
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbo.EasyDNNNewsTagsItems 
+        WHERE ArticleID = i.ArticleID AND TagID = i.TagID
+    );
+END;
+// STOP SQL 
+
+#Verify the Trigger:
+
+After running the query, the trigger will be in place and will intercept any new insertions into the EasyDNNNewsTagsItems table.
+You can verify the trigger was created successfully by running the following query to list all triggers on the table:
+
+// Start SQL 
+SELECT * FROM sys.triggers WHERE parent_id = OBJECT_ID('dbo.EasyDNNNewsTagsItems');
+You should see trg_PreventDuplicateTags listed as an active trigger.
+// STOP SQL 
+#Monitor Future RSS Imports:
+
+The next time an RSS feed is imported and attempts to insert a duplicate tag, the trigger will prevent it from being added and prevent the primary key violation error.
+
+#Testing the Trigger:
+You can test it by manually attempting to insert a duplicate entry into the EasyDNNNewsTagsItems table. The insertion should be blocked by the trigger.
+
+INSERT INTO dbo.EasyDNNNewsTagsItems (ArticleID, TagID, DateAdded)
+VALUES (61640, 87, GETDATE());  -- Replace with actual values
+If the combination (61640, 87) already exists, the trigger will prevent this insertion from occurring.
+
